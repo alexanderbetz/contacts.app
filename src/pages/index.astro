@@ -1,0 +1,77 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Card from '../components/Card.astro'
+import { supabase } from '../supabase'
+
+const search = Astro.url.searchParams.get('search')
+let queryBuilder = supabase.from('contact').select().order('last_name', { ascending: true }).order('first_name', { ascending: true })
+if (search) {
+  queryBuilder = queryBuilder.or(`first_name.ilike.%${search}%, last_name.ilike.%${search}%, email.ilike.%${search}%, phone.ilike.%${search}%`)
+}
+
+const { data, error } = await queryBuilder
+const imgUrls = data.map(d => supabase.storage.from('avatars').getPublicUrl(`public/${d.id}/avatar`).data.publicUrl)
+---
+
+<Layout title="Contacts.app">
+  <main class="sm:mt-5 sm:p-4 w-full max-w-[800px] mx-auto border-2 border-gray-200 bg-white rounded-xl">
+    <div class="border-b border-gray-200 bg-white px-4 py-5 sm:px-6">
+      <div class="-ml-4 -mt-2 flex flex-wrap items-center justify-between sm:flex-nowrap">
+        <div class="ml-4 mt-2">
+          <h3 class="text-base font-semibold leading-6 text-gray-900">Contacts</h3>
+        </div>
+        <div class="ml-4 mt-2 flex-shrink-0">
+          <form method="get" action="/">
+            <div>
+              <div class="flex rounded-md shadow-sm">
+                <div class="relative flex flex-grow items-stretch focus-within:z-10">
+                  <input
+                    type="text"
+                    name="search"
+                    id="search"
+                    class="block w-full rounded-none rounded-l-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    value={Astro.url.searchParams.get('search')}>
+                </div>
+                <button
+                  type="submit"
+                  class="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                  Search
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <ul role="list" class="divide-y divide-gray-100">
+      {data.map((entry, index) => (
+        <li class={(index > 0) && entry.last_name.toLowerCase().charAt(0) === data[index - 1].last_name.toLowerCase().charAt(0) ? 'hidden' : 'sticky top-0 bg-gray-100 px-2'}>{entry.last_name.charAt(0).toUpperCase()}</li>
+        <li class="relative flex justify-between gap-x-6 px-4 py-5 hover:bg-gray-50 sm:px-6 lg:px-8">
+          <div class="flex min-w-0 gap-x-4">
+            <img class="h-12 w-12 flex-none rounded-full object-cover" src={imgUrls[index]} alt=""/>
+            <div class="min-w-0 flex-auto">
+              <p class="text-sm font-semibold leading-6 text-gray-900">
+                <a href={'/contacts/' + entry.id}>
+                  <span class="absolute inset-x-0 -top-px bottom-0"></span>
+                  {entry.first_name + ' ' + entry.last_name}
+                </a>
+              </p>
+              <p class="mt-1 flex text-xs leading-5 text-gray-500">
+                <a href={'mailto:' + entry.email} class="relative truncate hover:underline">{entry.email}</a>
+              </p>
+            </div>
+          </div>
+          <div class="flex shrink-0 items-center gap-x-4">
+            <svg class="h-5 w-5 flex-none text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path
+                fill-rule="evenodd"
+                d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                clip-rule="evenodd"/>
+            </svg>
+          </div>
+        </li>
+        ))}
+        </ul>
+        </main>
+        </Layout>
